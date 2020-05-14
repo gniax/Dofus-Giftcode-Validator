@@ -1,0 +1,20 @@
+{
+  "name": "dofus-giftcard",
+  "version": "1.0.0",
+  "description": "",
+  "bin": {
+    "main": "index.js"
+  },
+  "scripts": {
+    "build": "rm -rf dist && pkg . -t node10-win-x64 --out-path dist",
+    "postbuild": "cp -R ./node_modules/puppeteer/.local-chromium dist/chromium && cp -R ./readme.txt ./dist/ && cp -r ./proxy.txt ./dist/"
+  },
+  "author": "Léo MESBAH",
+  "license": "MIT",
+  "dependencies": {
+    "path": "^0.12.7",
+    "pkg": "^4.4.0",
+    "puppeteer": "^1.17.0",
+    "xmlhttprequest": "^1.8.0"
+  }
+}
