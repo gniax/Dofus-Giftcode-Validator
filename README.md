@@ -22,10 +22,9 @@ You will need [Anti-captcha](https://anti-captcha.com/mainpage) key too (because
 ```
 git clone https://github.com/gniax/dofus-giftcard-validator/
 npm install
-node index.js
 ```
 
-Then place your accounts (username:password) into accounts.txt and at least one proxy into proxies.txt
+Then place your accounts (username:password) into accounts.txt and at least one proxy into proxy.txt
 
 #### Do not forget to edit these lines in **index.js** !
 ```
@@ -46,7 +45,8 @@ May works with Linux too.
 
 ## Contributing
 
-This tool is open for any contributions, you are free to help to upgrade this program. You can add options to use proxy for instance...
+This tool is open for any contributions, you are free to help to upgrade this program. 
+You can add options to not use proxy for instance...
 
 ## Acknowledgments
 
