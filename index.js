@@ -19,8 +19,9 @@ let chromiumPath = (isPkg ?
 );
 
 const giftCode = 'TOUCHAVRIL2020'; // Here set the giftcode you want to use on every accounts
-const ipValidityUrl = 'https://hidemyna.me/api/geoip.php?out=js&htmlentities';
 const antiCaptchaKey = ''; //Anti-captcha key
+const ankamaValidityUrl = 'https://proxyconnection.touch.dofus.com/haapi/getForumPostsList?lang=fr&topicId=24993';
+const ipValidityUrl = 'https://hidemyna.me/api/geoip.php?out=js&htmlentities';
 const createTaskUrl = 'https://api.anti-captcha.com/createTask';
 const getTaskResultUrl = 'https://api.anti-captcha.com/getTaskResult';
 
@@ -121,6 +122,12 @@ const readInputFile = (fileName) => new Promise(async (resolve, reject) => {
         tempObj["_id"] = key;
         tempObj["ip"] = proxy[0];
         tempObj["port"] = proxy[1];
+
+        if (proxy[2] != null && proxy[2] != "" && proxy[3] != null && proxy[3] != "")
+        {
+          tempObj["username"] = proxy[2];
+          tempObj["password"] = proxy[3];
+        }
 
         proxyList.push(tempObj);
       });
@@ -293,12 +300,26 @@ const handleAntiCaptcha = async () => {
 // Initialize browser window for proxy details
 const initBrowser = (proxy) => new Promise(async (resolve, reject) => {
   try {
-    let browser = await puppeteer.launch({
+    const args = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-infobars',
+      '--window-position=0,0',
+      '--ignore-certifcate-errors',
+      '--ignore-certifcate-errors-spki-list',
+      `--proxy-server=${proxy.ip}:${proxy.port}`
+  ];
+
+  
+  const options = {
+      args,
       executablePath: chromiumPath,
-      // headless: false,
-      // slowMo: 100,
-      args: [ `--proxy-server=${proxy.ip}:${proxy.port}` ]
-    });
+      headless: true,
+      ignoreHTTPSErrors: true,
+      userDataDir: './tmp'
+  };
+
+    let browser = await puppeteer.launch(options);
 
     resolve(browser);
   } catch (error) {
@@ -330,6 +351,14 @@ const handleFormSubmission = async (dataIn) => {
   await LOG('Initializing Browser');
   
   let page = await browser.newPage();
+  
+  if (dataIn.proxy.username != null && dataIn.proxy.password != null)
+  {
+    let username = dataIn.proxy.username;
+    let password = dataIn.proxy.password;
+
+    await page.authenticate({ username, password });
+  }
   
   //#region Proxy Validity Check
 
@@ -403,7 +432,42 @@ const handleFormSubmission = async (dataIn) => {
   }
   stopWaiting(proxyValidity, (stdClrs.FgGreen + " VALID"));
   await LOG('IP is from a valid country');
+  await LOG('Trying to validate proxy by navigating to ankama website');
 
+  let proxyError = false;
+  try {
+
+    await page.goto(ankamaValidityUrl, { waitUntil: "load", timeout: 30000 });
+    jsonContent = await page.evaluate(() =>  {
+      return JSON.parse(document.querySelector("body").innerText); 
+    }); 
+    
+    //await page.screenshot({ path: `./capture/${Date.now()}_beforeSubmission.png`, fullPage: true });
+    let content = JSON.stringify(jsonContent);
+    if (content == '[]')
+    {
+      stopWaiting(proxyValidity, (stdClrs.FgGreen + " VALID"));
+    }
+    else
+    {
+      proxyError = true;
+    }
+  } catch (err) {
+    proxyError = true;
+  }
+
+  if (proxyError)
+  {
+    await LOG('Error occured during loading IP validation API');
+    await page.close();
+    await closeBrowser(browser);
+    stopWaiting(proxyValidity, (stdClrs.FgRed + "ERROR"));
+
+    return {
+      errorId: 3,
+      msg: 'Unknown Proxy Error'
+    };
+  }
   //#endregion
   
   await page.close();
@@ -675,7 +739,9 @@ const handleTasks = async () => {
     let status = await handleFormSubmission({
       proxy: {
         ip: proxyList[proxyCounter].ip,
-        port: proxyList[proxyCounter].port
+        port: proxyList[proxyCounter].port,
+        username: proxyList[i].username,
+        password: proxyList[i].password
       },
       account: {
         username: accountsList[i].username,
